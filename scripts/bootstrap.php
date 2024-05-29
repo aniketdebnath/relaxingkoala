@@ -1,4 +1,5 @@
 <?php
+// Ensure errors are displayed (for development purposes)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -6,106 +7,140 @@ error_reporting(E_ALL);
 require_once '../classes/config.php';
 require_once '../classes/menu_manager.php';
 require_once '../classes/reservation_manager.php';
-require_once '../classes/Order.class.php';
 require_once '../classes/customer.php';
+require_once '../classes/order.class.php';
 require_once '../classes/review.php';
-require_once '../classes/sales_record.php';
-require_once '../classes/analysis.php';
+require_once '../classes/restaurant_staff.php';
+require_once '../classes/manager.class.php';
+require_once '../classes/item.php';
 
-function checkDatabaseConnection($pdo) {
-    try {
-        $stmt = $pdo->query('SELECT 1');
-        if ($stmt) {
-            echo "Database connection is working.<br>";
-        }
-    } catch (Exception $e) {
-        echo "Error: " . $e->getMessage() . "<br>";
-    }
+// Check database connection
+try {
+    $pdo->query('SELECT 1');
+    echo "Database connection successful.<br>";
+} catch (Exception $e) {
+    echo "Database connection failed: " . $e->getMessage();
+    exit();
 }
+echo "<br>";
 
-function loadMenuItems() {
+// Initialize and load MenuManager
+try {
     $menuManager = MenuManager::getInstance();
     $items = $menuManager->getItems();
-    echo "Loaded " . count($items) . " menu items.<br>";
+    if (!empty($items)) {
+        echo "Menu items loaded successfully:<br>";
+        foreach ($items as $item) {
+            echo htmlspecialchars($item['name']) . " - " . htmlspecialchars($item['description']) . " - $" . number_format($item['price'], 2) . "<br>";
+        }
+    } else {
+        echo "No menu items found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load menu items: " . $e->getMessage() . "<br>";
 }
+echo "<br>";
 
-function loadTables() {
+// Initialize and load ReservationManager
+try {
     $reservationManager = new ReservationManager();
     $tables = $reservationManager->getTables();
-    echo "Loaded " . count($tables) . " tables.<br>";
+    if (!empty($tables)) {
+        echo "Tables loaded successfully:<br>";
+        foreach ($tables as $table) {
+            echo "Table #" . htmlspecialchars($table->getTableNumber()) . " - Capacity: " . htmlspecialchars($table->getCapacity()) . " - Available: " . ($table->isAvailable() ? "Yes" : "No") . "<br>";
+        }
+    } else {
+        echo "No tables found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load tables: " . $e->getMessage() . "<br>";
+}
+echo "<br>";
+
+// Load Customers
+try {
+    $stmt = $pdo->query('SELECT * FROM customers');
+    $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($customers)) {
+        echo "Customers loaded successfully:<br>";
+        foreach ($customers as $customer) {
+            echo "Customer ID: " . htmlspecialchars($customer['id']) . " - Name: " . htmlspecialchars($customer['NAME']) . "<br>";
+        }
+    } else {
+        echo "No customers found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load customers: " . $e->getMessage() . "<br>";
+}
+echo "<br>";
+
+// Load Orders
+try {
+    $stmt = $pdo->query('SELECT * FROM orders');
+    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($orders)) {
+        echo "Orders loaded successfully:<br>";
+        foreach ($orders as $order) {
+            echo "Order ID: " . htmlspecialchars($order['id']) . " - Customer ID: " . htmlspecialchars($order['customer_id']) . " - Total Amount: $" . number_format($order['total_amount'], 2) . "<br>";
+        }
+    } else {
+        echo "No orders found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load orders: " . $e->getMessage() . "<br>";
+}
+echo "<br>";
+
+// Load Reviews
+try {
+    $stmt = $pdo->query('SELECT * FROM reviews');
+    $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($reviews)) {
+        echo "Reviews loaded successfully:<br>";
+        foreach ($reviews as $review) {
+            echo "Review ID: " . htmlspecialchars($review['id']) . " - Customer ID: " . htmlspecialchars($review['customer_id']) . " - Feedback: " . htmlspecialchars($review['feedback']) . "<br>";
+        }
+    } else {
+        echo "No reviews found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load reviews: " . $e->getMessage() . "<br>";
+}
+echo "<br>";
+
+// Load Managers
+try {
+    $stmt = $pdo->query('SELECT * FROM admins');
+    $managers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($managers)) {
+        echo "Managers loaded successfully:<br>";
+        foreach ($managers as $manager) {
+            echo "Manager ID: " . htmlspecialchars($manager['id']) . " - Name: " . htmlspecialchars($manager['name']) . "<br>";
+        }
+    } else {
+        echo "No managers found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load managers: " . $e->getMessage() . "<br>";
+}
+echo "<br>";
+
+// Load Items
+try {
+    $stmt = $pdo->query('SELECT * FROM items');
+    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($items)) {
+        echo "Items loaded successfully:<br>";
+        foreach ($items as $item) {
+            echo "Item ID: " . htmlspecialchars($item['id']) . " - Name: " . htmlspecialchars($item['name']) . " - Description: " . htmlspecialchars($item['description']) . " - Price: $" . number_format($item['price'], 2) . "<br>";
+        }
+    } else {
+        echo "No items found.<br>";
+    }
+} catch (Exception $e) {
+    echo "Failed to load items: " . $e->getMessage() . "<br>";
 }
 
-function loadCustomers() {
-    global $pdo;
-    $stmt = $pdo->query('SELECT COUNT(*) as count FROM customers');
-    $count = $stmt->fetch()['count'];
-    echo "Loaded " . $count . " customers.<br>";
-}
-
-function loadReservations() {
-    global $pdo;
-    $stmt = $pdo->query('SELECT COUNT(*) as count FROM reservations');
-    $count = $stmt->fetch()['count'];
-    echo "Loaded " . $count . " reservations.<br>";
-}
-
-function loadOrders() {
-    global $pdo;
-    $stmt = $pdo->query('SELECT COUNT(*) as count FROM orders');
-    $count = $stmt->fetch()['count'];
-    echo "Loaded " . $count . " orders.<br>";
-}
-
-function loadReviews() {
-    global $pdo;
-    $stmt = $pdo->query('SELECT COUNT(*) as count FROM reviews');
-    $count = $stmt->fetch()['count'];
-    echo "Loaded " . $count . " reviews.<br>";
-}
-
-function loadSalesRecords() {
-    $salesRecord = new SalesRecord();
-    $sales = $salesRecord->getSalesRecords();
-    echo "Loaded " . count($sales) . " sales records.<br>";
-}
-
-function analyzeData() {
-    $analysis = new Analysis();
-    $totalSales = $analysis->analyzeSalesData();
-    $totalReviews = $analysis->analyzeReviews();
-    echo "Total Sales: $" . $totalSales . "<br>";
-    echo "Total Reviews: " . $totalReviews . "<br>";
-}
-
-// Initialize System
-echo "<h1>Bootstrap Process</h1>";
-echo "<h2>System Initialization</h2>";
-checkDatabaseConnection($pdo);
-
-// Menu and Items Setup
-echo "<h2>Menu and Items Setup</h2>";
-loadMenuItems();
-
-// Table and Reservation Setup
-echo "<h2>Table and Reservation Setup</h2>";
-loadTables();
-
-// Customer Management
-echo "<h2>Customer Management</h2>";
-loadCustomers();
-
-// Order Processing Setup
-echo "<h2>Order Processing Setup</h2>";
-loadOrders();
-
-// Review Collection and Management
-echo "<h2>Review Collection and Management</h2>";
-loadReviews();
-
-// Sales and Analysis
-echo "<h2>Sales and Analysis</h2>";
-loadSalesRecords();
-analyzeData();
-
-echo "<h2>Bootstrap Process Completed</h2>";
+echo "Bootstrap process completed successfully.";
 ?>
