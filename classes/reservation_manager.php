@@ -30,6 +30,12 @@ class ReservationManager {
         return $this->tables;
     }
 
+    public function getReservations() {
+        global $pdo;
+        $stmt = $pdo->query('SELECT * FROM reservations');
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function bookTable($user_id, $table_id, $date, $timeStart, $timeEnd, $guests) {
         global $pdo;
 

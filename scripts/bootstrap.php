@@ -41,20 +41,21 @@ try {
 }
 echo "<br>";
 
-// Initialize and load ReservationManager
+
+// Initialize and load ReservationManager and show reservations
 try {
     $reservationManager = new ReservationManager();
-    $tables = $reservationManager->getTables();
-    if (!empty($tables)) {
-        echo "Tables loaded successfully:<br>";
-        foreach ($tables as $table) {
-            echo "Table #" . htmlspecialchars($table->getTableNumber()) . " - Capacity: " . htmlspecialchars($table->getCapacity()) . " - Available: " . ($table->isAvailable() ? "Yes" : "No") . "<br>";
+    $reservations = $reservationManager->getReservations();
+    if (!empty($reservations)) {
+        echo "Reservations loaded successfully:<br>";
+        foreach ($reservations as $reservation) {
+            echo "Reservation ID: " . htmlspecialchars($reservation['id']) . " - Customer ID: " . htmlspecialchars($reservation['customer_id']) . " - Table ID: " . htmlspecialchars($reservation['table_id']) . " - Date: " . htmlspecialchars($reservation['reservation_date']) . " - Time: " . htmlspecialchars($reservation['reservation_time_start']) . " to " . htmlspecialchars($reservation['reservation_time_end']) . "<br>";
         }
     } else {
-        echo "No tables found.<br>";
+        echo "No reservations found.<br>";
     }
 } catch (Exception $e) {
-    echo "Failed to load tables: " . $e->getMessage() . "<br>";
+    echo "Failed to load reservations: " . $e->getMessage() . "<br>";
 }
 echo "<br>";
 
