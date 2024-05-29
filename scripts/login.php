@@ -9,9 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $role = $_POST['role']; // Get the selected role
 
     if ($role == 'customer') {
-        $stmt = $pdo->prepare('SELECT id, name, email, phone, password FROM customers WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT id, name, email, phone, password, role FROM customers WHERE email = ?');
     } elseif ($role == 'admin') {
-        $stmt = $pdo->prepare('SELECT id, name, email, phone, password FROM admins WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT id, name, email, phone, password, role FROM admins WHERE email = ?');
     } else {
         echo 'Invalid role selected';
         exit();
@@ -23,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($user && password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['name'] = $user['name'];
-        $_SESSION['role'] = $role;
-        header('Location: index.php');
+        $_SESSION['role'] = $user['role'];
+        header('Location: dashboard.php');
         exit();
     } else {
         echo 'Invalid email or password';

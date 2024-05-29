@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../classes/config.php';
+include '../includes/header.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = $_POST['name'];
@@ -11,12 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($role == 'customer') {
         // Insert the new customer into the customers table
-        $stmt = $pdo->prepare('INSERT INTO customers (name, email, phone, password) VALUES (?, ?, ?, ?)');
-        $stmt->execute([$name, $email, $phone, $password]);
+        $stmt = $pdo->prepare('INSERT INTO customers (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$name, $email, $phone, $password, $role]);
     } elseif ($role == 'admin') {
         // Insert the new admin into the admins table
-        $stmt = $pdo->prepare('INSERT INTO admins (name, email, phone, password) VALUES (?, ?, ?, ?)');
-        $stmt->execute([$name, $email, $phone, $password]);
+        $stmt = $pdo->prepare('INSERT INTO admins (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$name, $email, $phone, $password, $role]);
     }
 
     // Set session variables
@@ -26,8 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     header("Location: index.php");
     exit();
 }
-
-include '../includes/header.php';
 ?>
 
 <h1>Sign Up</h1>

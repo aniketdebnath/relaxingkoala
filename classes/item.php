@@ -4,7 +4,6 @@ class Item {
     private $name;
     private $description;
     private $price;
-    private $image;
 
     public function __construct($id, $name, $description, $price) {
         $this->id = $id;

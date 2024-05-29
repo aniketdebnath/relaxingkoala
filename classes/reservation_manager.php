@@ -1,19 +1,28 @@
 <?php
-require_once 'config.php';
+require_once 'config.php'; 
 require_once 'RestaurantTable.php';
 
 class ReservationManager {
     private $tables = [];
 
-    public function __construct() {
+    public function __construct() { 
         $this->loadTablesFromDatabase();
     }
 
     private function loadTablesFromDatabase() {
         global $pdo;
-        $stmt = $pdo->query('SELECT * FROM restaurant_tables');
+        $query = 'SELECT * FROM restaurant_tables';
+        $stmt = $pdo->query($query);
         while ($row = $stmt->fetch()) {
-            $this->tables[] = new RestaurantTable($row['id'], $row['table_number'], $row['capacity'], $row['is_available']);
+            $this->tables[$row['id']] = new RestaurantTable(
+                $row['id'], 
+                $row['table_number'], 
+                $row['capacity'], 
+                $row['is_available'],
+                $row['reservation_time_start'],
+                $row['reservation_time_end'],
+                $row['reservation_date']  
+            );
         }
     }
 
@@ -21,20 +30,58 @@ class ReservationManager {
         return $this->tables;
     }
 
-    public function bookTable($user_id, $table_id, $date, $time, $guests) {
+    public function bookTable($user_id, $table_id, $date, $timeStart, $timeEnd, $guests) {
         global $pdo;
-        // Insert into reservations table
-        $stmt = $pdo->prepare('INSERT INTO reservations (customer_id, table_id, reservation_date, reservation_time, guests) VALUES (?, ?, ?, ?, ?)');
-        $stmt->execute([$user_id, $table_id, $date, $time, $guests]);
-        
-        // Update table availability
-        $this->updateTableAvailability($table_id, false);
+
+        if (isset($this->tables[$table_id])) {
+            $table = $this->tables[$table_id];
+
+            if ($guests > $table->getCapacity()) {
+                return "Unable to accommodate the number of guests.";
+            }
+            if (!$table->isAvailable()) {
+                return "Table is currently not available.";
+            }
+
+            // Convert input and table reservation dates to DateTime objects
+            $inputDate = new DateTime($date);
+            $reservationDate = new DateTime($table->getReservationDate());
+
+            // date matches or exceeds date in the database
+            if ($inputDate < $reservationDate) {
+                return "Reservations for this table start from " . $table->getReservationDate() . ".";
+            }
+
+            // Check if resturant is opened
+            if ($timeStart < $table->getReservationTimeStart() || $timeEnd > $table->getReservationTimeEnd()) {
+                return "Requested time " . $timeStart . " to " . $timeEnd . " is outside the table's available hours from " . $table->getReservationTimeStart() . " to " . $table->getReservationTimeEnd() . ".";
+            }
+
+            // Check for tables already reserved overlapping times
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM reservations WHERE table_id = ? AND reservation_date = ? AND NOT (reservation_time_end <= ? OR reservation_time_start >= ?)');
+            $stmt->execute([$table_id, $date, $timeStart, $timeEnd]);
+            if ($stmt->fetchColumn() > 0) {
+                return "Table is already booked for the specified times.";
+            }
+
+            try {
+                $pdo->beginTransaction();
+
+              
+                $stmt = $pdo->prepare('INSERT INTO reservations (customer_id, table_id, reservation_date, reservation_time_start, reservation_time_end, guests) VALUES (?, ?, ?, ?, ?, ?)');
+                $stmt->execute([$user_id, $table_id, $date, $timeStart, $timeEnd, $guests]);
+
+                $pdo->commit();
+                return "Table has been booked successfully!";
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                return "Failed to book the table: " . $e->getMessage();
+            }
+        } else {
+            return "Table does not exist.";
+        }
     }
 
-    private function updateTableAvailability($table_id, $availability) {
-        global $pdo;
-        $stmt = $pdo->prepare('UPDATE restaurant_tables SET is_available = ? WHERE id = ?');
-        $stmt->execute([$availability, $table_id]);
-    }
+ 
 }
 ?>
